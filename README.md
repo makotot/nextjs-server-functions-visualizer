@@ -79,4 +79,5 @@ You can tweak the background intensity and theme colors.
 - Issues/PRs welcome. Proposals for UI/colors and unsupported patterns (e.g., namespace import/element access) are appreciated.
 
 ## Related
-- Next.js Component Boundary Visualizer: https://github.com/makotot/vscode-nextjs-component-boundary-visualizer — A VS Code extension that visualizes component execution environments (client/server) via the 'use client' directive.
+- [Next.js Component Boundary Visualizer](https://github.com/makotot/vscode-nextjs-component-boundary-visualizer) — A VS Code extension that visualizes component execution environments (client/server) via the 'use client' directive.
+- [Next.js RSC Boundary Pack](https://marketplace.visualstudio.com/items?itemName=makotot.nextjs-rsc-boundary-pack) — A pack of VS Code extensions that highlight boundary information for React Server Components.
