@@ -1,7 +1,12 @@
-import * as vscode from 'vscode';
-import { createDecorations, disposeDecorations, type Decorations } from './decorator';
-import { buildUpdateEditor } from './updater';
-import { makeVsCodeResolveFn } from './resolver';
+// biome-ignore lint/performance/noNamespaceImport: cannot import vscode as namespace
+import * as vscode from "vscode";
+import {
+  createDecorations,
+  type Decorations,
+  disposeDecorations,
+} from "./decorator";
+import { makeVsCodeResolveFn } from "./resolver";
+import { buildUpdateEditor } from "./updater";
 
 /**
  * Register highlighting and wire the decoration lifecycle and events.
@@ -10,7 +15,11 @@ import { makeVsCodeResolveFn } from './resolver';
  */
 export function registerVisualizer(context: vscode.ExtensionContext) {
   let decorations: Decorations = createDecorations();
-  context.subscriptions.push(decorations.body, decorations.call, decorations.icon);
+  context.subscriptions.push(
+    decorations.body,
+    decorations.call,
+    decorations.icon
+  );
 
   const getDecorations = () => decorations;
   const resolveFn = makeVsCodeResolveFn();
@@ -18,8 +27,13 @@ export function registerVisualizer(context: vscode.ExtensionContext) {
 
   let timer: NodeJS.Timeout | undefined;
   const scheduleUpdate = () => {
-    if (timer) { clearTimeout(timer); }
-    timer = setTimeout(() => { void updateEditor(vscode.window.activeTextEditor); }, 200);
+    if (timer) {
+      clearTimeout(timer);
+    }
+    const interval = 200;
+    timer = setTimeout(() => {
+      updateEditor(vscode.window.activeTextEditor);
+    }, interval);
   };
 
   // Initial render
@@ -28,29 +42,47 @@ export function registerVisualizer(context: vscode.ExtensionContext) {
   // Wire events
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(() => scheduleUpdate()),
-    vscode.workspace.onDidChangeTextDocument(e => {
+    vscode.workspace.onDidChangeTextDocument((e) => {
       const active = vscode.window.activeTextEditor;
-      if (active && e.document === active.document) {scheduleUpdate();}
+      if (active && e.document === active.document) {
+        scheduleUpdate();
+      }
     }),
-    vscode.workspace.onDidOpenTextDocument(doc => {
+    vscode.workspace.onDidOpenTextDocument((doc) => {
       const active = vscode.window.activeTextEditor;
-      if (active && doc === active.document) {scheduleUpdate();}
+      if (active && doc === active.document) {
+        scheduleUpdate();
+      }
     }),
     vscode.window.onDidChangeActiveColorTheme(() => {
       disposeDecorations(decorations);
       decorations = createDecorations();
-      context.subscriptions.push(decorations.body, decorations.call, decorations.icon);
+      context.subscriptions.push(
+        decorations.body,
+        decorations.call,
+        decorations.icon
+      );
       scheduleUpdate();
     }),
-    vscode.workspace.onDidChangeConfiguration(e => {
+    vscode.workspace.onDidChangeConfiguration((e) => {
       if (
-        e.affectsConfiguration('nextjs-server-functions-visualizer.highlight.definition') ||
-        e.affectsConfiguration('nextjs-server-functions-visualizer.highlight.call') ||
-        e.affectsConfiguration('nextjs-server-functions-visualizer.calls.ignoreCallees')
+        e.affectsConfiguration(
+          "nextjs-server-functions-visualizer.highlight.definition"
+        ) ||
+        e.affectsConfiguration(
+          "nextjs-server-functions-visualizer.highlight.call"
+        ) ||
+        e.affectsConfiguration(
+          "nextjs-server-functions-visualizer.calls.ignoreCallees"
+        )
       ) {
         disposeDecorations(decorations);
         decorations = createDecorations();
-        context.subscriptions.push(decorations.body, decorations.call, decorations.icon);
+        context.subscriptions.push(
+          decorations.body,
+          decorations.call,
+          decorations.icon
+        );
         scheduleUpdate();
       }
     })

@@ -1,4 +1,5 @@
-import * as vscode from 'vscode';
+// biome-ignore lint/performance/noNamespaceImport: cannot import vscode as namespace
+import * as vscode from "vscode";
 
 function compilePatterns(patterns: string[]): RegExp[] {
   const regs: RegExp[] = [];
@@ -13,21 +14,25 @@ function compilePatterns(patterns: string[]): RegExp[] {
 }
 
 export function getExcludeRegexes(): RegExp[] {
-  const cfg = vscode.workspace.getConfiguration('nextjs-server-functions-visualizer');
-  const arr = cfg.get<string[]>('files.exclude', [
-    '\\.(stories|story)\\.[tj]sx?$',
-    '\\.(test|spec)\\.[tj]sx?$',
-    '/__tests__/',
-    '/\\.storybook/',
+  const cfg = vscode.workspace.getConfiguration(
+    "nextjs-server-functions-visualizer"
+  );
+  const arr = cfg.get<string[]>("files.exclude", [
+    "\\.(stories|story)\\.[tj]sx?$",
+    "\\.(test|spec)\\.[tj]sx?$",
+    "/__tests__/",
+    "/\\.storybook/",
   ]);
   return compilePatterns(Array.isArray(arr) ? arr : []);
 }
 
 export function isExcludedFileName(fileName: string, regs?: RegExp[]): boolean {
   const patterns = regs ?? getExcludeRegexes();
-  const path = fileName.replace(/\\/g, '/');
+  const path = fileName.replace(/\\/g, "/");
   for (const r of patterns) {
-    if (r.test(path)) { return true; }
+    if (r.test(path)) {
+      return true;
+    }
   }
   return false;
 }

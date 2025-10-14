@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /**
  * Information representing a detected Server Function.
@@ -6,13 +6,13 @@ import ts from 'typescript';
  * - bodyStart/bodyEnd: Character offset range for the function body (converted to VS Code positions by the caller)
  * - nameStart/nameEnd: Offset range of the definition identifier (undefined if absent)
  */
-export interface ServerFunctionSpan {
+export type ServerFunctionSpan = {
   name: string;
   bodyStart: number;
   bodyEnd: number;
   nameStart?: number;
   nameEnd?: number;
-}
+};
 
 /**
  * Detect Server Function candidates from the given source.
@@ -25,36 +25,74 @@ export interface ServerFunctionSpan {
  * - Async function literals inside initializers (builder/factory arguments)
  * - Inline async () => { 'use server' } in JSX
  */
-export function scanServerFunctions(sourceText: string, fileName = 'file.tsx'): ServerFunctionSpan[] {
-  const kind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+export function scanServerFunctions(
+  sourceText: string,
+  fileName = "file.tsx"
+): ServerFunctionSpan[] {
+  const kind = fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
 
-  const sf = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.Latest, true, kind);
+  const sf = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    kind
+  );
   const moduleHasUseServer = isUseServerPrologue(sf.statements);
 
   const serverFunctions: ServerFunctionSpan[] = [];
   const seen = new Set<string>();
 
-  const pushFunction = (name: string, start: number, end: number, nameStart?: number, nameEnd?: number) => {
+  const pushFunction = ({
+    name,
+    span: { start, end },
+    nameStart,
+    nameEnd,
+  }: {
+    name: string;
+    span: { start: number; end: number };
+    nameStart?: number;
+    nameEnd?: number;
+  }) => {
     const key = `${start}:${end}`;
-    if (seen.has(key)) {return;}
+    if (seen.has(key)) {
+      return;
+    }
     seen.add(key);
-    serverFunctions.push({ name, bodyStart: start, bodyEnd: end, nameStart, nameEnd });
+    serverFunctions.push({
+      name,
+      bodyStart: start,
+      bodyEnd: end,
+      nameStart,
+      nameEnd,
+    });
   };
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: temporary ignore
   sf.forEachChild(function walk(node) {
     // function declarations (exported or local)
     if (ts.isFunctionDeclaration(node)) {
       const fn = node;
       const exported = isExported(node.modifiers);
-      const eligible = isAsync(fn) && ((exported && (moduleHasUseServer || hasUseServerInFunctionBody(fn))) || (!exported && hasUseServerInFunctionBody(fn)));
+      const eligible =
+        isAsync(fn) &&
+        ((exported && (moduleHasUseServer || hasUseServerInFunctionBody(fn))) ||
+          (!exported && hasUseServerInFunctionBody(fn)));
       if (eligible) {
         const span = getBodySpan(sf, fn);
         if (span) {
           const nameId = node.name;
-          const name = nameId?.text ?? (exported && isDefault(node.modifiers) ? 'default' : '(anonymous)');
+          const name =
+            nameId?.text ??
+            (exported && isDefault(node.modifiers) ? "default" : "(anonymous)");
           const nameStart = nameId ? nameId.getStart(sf) : undefined;
           const nameEnd = nameId ? nameId.getEnd() : undefined;
-          pushFunction(name, span.start, span.end, nameStart, nameEnd);
+          pushFunction({
+            name,
+            span: { start: span.start, end: span.end },
+            nameStart,
+            nameEnd,
+          });
         }
       }
     }
@@ -70,24 +108,43 @@ export function scanServerFunctions(sourceText: string, fileName = 'file.tsx'): 
           const init = decl.initializer;
           // direct function/arrow assignment
           if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) {
-            const eligible = isAsync(init) && ((exported && (moduleHasUseServer || hasUseServerInFunctionBody(init))) || (!exported && hasUseServerInFunctionBody(init)));
+            const eligible =
+              isAsync(init) &&
+              ((exported &&
+                (moduleHasUseServer || hasUseServerInFunctionBody(init))) ||
+                (!exported && hasUseServerInFunctionBody(init)));
             if (eligible) {
               const span = getBodySpan(sf, init);
               if (span) {
-                pushFunction(exportName, span.start, span.end, exportNameStart, exportNameEnd);
+                pushFunction({
+                  name: exportName,
+                  span: { start: span.start, end: span.end },
+                  nameStart: exportNameStart,
+                  nameEnd: exportNameEnd,
+                });
               }
             }
           }
 
           // nested: walk any expression tree and pick async function literals (builder/factory)
+          // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: temporary ignore
           const visit = (n: ts.Node) => {
             if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
               const fn = n;
-              const eligible = isAsync(fn) && ((exported && (moduleHasUseServer || hasUseServerInFunctionBody(fn))) || (!exported && hasUseServerInFunctionBody(fn)));
+              const eligible =
+                isAsync(fn) &&
+                ((exported &&
+                  (moduleHasUseServer || hasUseServerInFunctionBody(fn))) ||
+                  (!exported && hasUseServerInFunctionBody(fn)));
               if (eligible) {
                 const span = getBodySpan(sf, fn);
                 if (span) {
-                  pushFunction(exportName, span.start, span.end, exportNameStart, exportNameEnd);
+                  pushFunction({
+                    name: exportName,
+                    span: { start: span.start, end: span.end },
+                    nameStart: exportNameStart,
+                    nameEnd: exportNameEnd,
+                  });
                 }
               }
             }
@@ -104,7 +161,10 @@ export function scanServerFunctions(sourceText: string, fileName = 'file.tsx'): 
       if (isAsync(fn) && hasUseServerInFunctionBody(fn)) {
         const span = getBodySpan(sf, fn);
         if (span) {
-          pushFunction('(inline)', span.start, span.end);
+          pushFunction({
+            name: "(inline)",
+            span: { start: span.start, end: span.end },
+          });
         }
       }
     }
@@ -121,7 +181,9 @@ export function scanServerFunctions(sourceText: string, fileName = 'file.tsx'): 
 function isUseServerPrologue(statements: ts.NodeArray<ts.Statement>): boolean {
   for (const s of statements) {
     if (ts.isExpressionStatement(s) && ts.isStringLiteralLike(s.expression)) {
-      if (s.expression.text === 'use server') {return true;}
+      if (s.expression.text === "use server") {
+        return true;
+      }
       continue;
     }
     break;
@@ -133,33 +195,49 @@ function isUseServerPrologue(statements: ts.NodeArray<ts.Statement>): boolean {
  * Check if the function body starts with a 'use server' directive.
  * Arrow functions with expression bodies cannot have directives, so this returns false in that case.
  */
-function hasUseServerInFunctionBody(fn: ts.FunctionLikeDeclarationBase): boolean {
-  if (!fn.body) {return false;}
-  if (ts.isBlock(fn.body)) {return isUseServerPrologue(fn.body.statements);}
+function hasUseServerInFunctionBody(
+  fn: ts.FunctionLikeDeclarationBase
+): boolean {
+  if (!fn.body) {
+    return false;
+  }
+  if (ts.isBlock(fn.body)) {
+    return isUseServerPrologue(fn.body.statements);
+  }
   return false;
 }
 
 /** Whether the export modifier is present. */
 function isExported(mods?: readonly ts.ModifierLike[]): boolean {
-  return !!mods?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
+  return !!mods?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 }
 
 /** Whether the default modifier is present. */
 function isDefault(mods?: readonly ts.ModifierLike[]): boolean {
-  return !!mods?.some(m => m.kind === ts.SyntaxKind.DefaultKeyword);
+  return !!mods?.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword);
 }
 
 /** Whether the async modifier is present. */
 function isAsync(node: ts.Node): boolean {
-  return (ts.getCombinedModifierFlags(node as ts.Declaration) & ts.ModifierFlags.Async) !== 0;
+  return (
+    // biome-ignore lint/suspicious/noBitwiseOperators: temporary ignore
+    (ts.getCombinedModifierFlags(node as ts.Declaration) &
+      ts.ModifierFlags.Async) !==
+    0
+  );
 }
 
 /**
  * Return the text range of the function body (entire block including braces).
  */
-function getBodySpan(sf: ts.SourceFile, fn: ts.FunctionLikeDeclarationBase): { start: number; end: number } | undefined {
+function getBodySpan(
+  sf: ts.SourceFile,
+  fn: ts.FunctionLikeDeclarationBase
+): { start: number; end: number } | undefined {
   const body = fn.body;
-  if (!body) {return undefined;}
+  if (!body) {
+    return;
+  }
   const start = body.getStart(sf);
   const end = body.getEnd();
   return { start, end };

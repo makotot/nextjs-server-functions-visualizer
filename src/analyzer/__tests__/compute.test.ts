@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { computeHighlights } from '../../analyzer/compute';
-import type { RuntimeControls } from '../../analyzer/types';
+import { describe, expect, it } from "vitest";
+import { computeHighlights } from "../../analyzer/compute";
+import type { RuntimeControls } from "../../analyzer/types";
 
-async function alwaysResolve(): Promise<boolean> { return true; }
+// biome-ignore lint/suspicious/useAwait: test utility
+async function alwaysResolve(): Promise<boolean> {
+  return true;
+}
 
 type Case = {
   title: string;
@@ -16,8 +19,8 @@ type Case = {
 
 const cases: Case[] = [
   {
-    title: 'local server function definition + await call + form action',
-    file: 'page.tsx',
+    title: "local server function definition + await call + form action",
+    file: "page.tsx",
     code: `
       export default async function Page() {
         async function onSubmit(formData: FormData) {
@@ -34,8 +37,8 @@ const cases: Case[] = [
     expectCall: 2,
   },
   {
-    title: 'top-level helpers are ignored (useEffect/useOptimistic/useRouter)',
-    file: 'helpers.tsx',
+    title: "top-level helpers are ignored (useEffect/useOptimistic/useRouter)",
+    file: "helpers.tsx",
     code: `
       import { useEffect } from 'react';
       import { useOptimistic } from 'react';
@@ -55,8 +58,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'module prologue + exported async function',
-    file: 'mod-prologue.tsx',
+    title: "module prologue + exported async function",
+    file: "mod-prologue.tsx",
     code: `
       'use server';
       export async function doIt() { return 1; }
@@ -71,7 +74,7 @@ const cases: Case[] = [
   },
   {
     title: "local const async arrow with 'use server' + direct call",
-    file: 'local-const.tsx',
+    file: "local-const.tsx",
     code: `
       export default function P(){
         const run = async () => { 'use server'; return 1; };
@@ -84,8 +87,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'optional chaining property call (obj?.run?.()) is not highlighted',
-    file: 'opt-chain.tsx',
+    title: "optional chaining property call (obj?.run?.()) is not highlighted",
+    file: "opt-chain.tsx",
     code: `
       export default function P(){
         const obj: any = { run: () => {} };
@@ -98,8 +101,8 @@ const cases: Case[] = [
     expectCall: 0,
   },
   {
-    title: 'direct call through nested wrappers is detected',
-    file: 'wrap.ts',
+    title: "direct call through nested wrappers is detected",
+    file: "wrap.ts",
     code: `
       export default function P(){
         const id = () => {};
@@ -112,8 +115,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'type-only import is excluded from call highlight',
-    file: 'types-only.ts',
+    title: "type-only import is excluded from call highlight",
+    file: "types-only.ts",
     code: `
       import type { foo } from './x';
       export default function P(){ foo(); return null; }
@@ -123,8 +126,8 @@ const cases: Case[] = [
     expectCall: 0,
   },
   {
-    title: 'startTransition detects property access callee',
-    file: 'st-prop.tsx',
+    title: "startTransition detects property access callee",
+    file: "st-prop.tsx",
     code: `
       export default function P(){
         const run = () => {};
@@ -139,7 +142,7 @@ const cases: Case[] = [
   },
   {
     title: "element access call is not supported (no highlight)",
-    file: 'elem.ts',
+    file: "elem.ts",
     code: `
       const obj: any = { run: () => {} };
       export default function P(){ obj['run'](); return null; }
@@ -150,7 +153,7 @@ const cases: Case[] = [
   },
   {
     title: "namespace import call is highlighted (ns.fn())",
-    file: 'ns.ts',
+    file: "ns.ts",
     code: `
       import * as actions from './a';
       export default function P(){ actions.submit(); return null; }
@@ -160,8 +163,9 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'namespace import multi-level property is not highlighted (ns.group.fn())',
-    file: 'ns2.ts',
+    title:
+      "namespace import multi-level property is not highlighted (ns.group.fn())",
+    file: "ns2.ts",
     code: `
       import * as actions from './a';
       export default function P(){ actions.group.submit(); return null; }
@@ -172,7 +176,7 @@ const cases: Case[] = [
   },
   {
     title: "async export without 'use server' is not a definition",
-    file: 'no-server.ts',
+    file: "no-server.ts",
     code: `
       export async function maybeAction() { return 1 }
       export default async function Page(){
@@ -186,8 +190,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'global builtins (alert/console) are excluded',
-    file: 'builtin.tsx',
+    title: "global builtins (alert/console) are excluded",
+    file: "builtin.tsx",
     code: `
       export default function Comp(){
         alert('hello');
@@ -201,7 +205,7 @@ const cases: Case[] = [
   },
   {
     title: "non-async function with 'use server' is not a definition",
-    file: 'not-action.ts',
+    file: "not-action.ts",
     code: `
       export function notAction(){ 'use server'; return 1; }
       export default function Page(){ notAction(); return null; }
@@ -214,8 +218,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'builder/factory definition + direct call + form action',
-    file: 'builder.tsx',
+    title: "builder/factory definition + direct call + form action",
+    file: "builder.tsx",
     code: `
       'use server';
       import { actionClient } from './safe-action';
@@ -234,8 +238,8 @@ const cases: Case[] = [
     expectCall: 2,
   },
   {
-    title: 'JSX inline server function definition + jsx call',
-    file: 'inline.tsx',
+    title: "JSX inline server function definition + jsx call",
+    file: "inline.tsx",
     code: `
       export default function Page(){
         return (
@@ -250,8 +254,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'imported server function call (no local definitions)',
-    file: 'admin.tsx',
+    title: "imported server function call (no local definitions)",
+    file: "admin.tsx",
     code: `
       import { adminAction } from './action';
       export default async function AdminPage(){
@@ -264,8 +268,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'startTransition + useActionState patterns',
-    file: 'comp.tsx',
+    title: "startTransition + useActionState patterns",
+    file: "comp.tsx",
     code: `
       import { someAction } from './actions';
       export default function Comp(){
@@ -279,8 +283,8 @@ const cases: Case[] = [
     expectCall: 2,
   },
   {
-    title: 'useTransition startTransition callback highlights server functions',
-    file: 'use-transition.tsx',
+    title: "useTransition startTransition callback highlights server functions",
+    file: "use-transition.tsx",
     code: `
       import { useTransition } from 'react';
       import { doThing } from './actions';
@@ -295,8 +299,9 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'useTransition async startTransition callback highlights server functions',
-    file: 'use-transition-async.tsx',
+    title:
+      "useTransition async startTransition callback highlights server functions",
+    file: "use-transition-async.tsx",
     code: `
       import { useTransition } from 'react';
       import { doThing } from './actions';
@@ -313,8 +318,8 @@ const cases: Case[] = [
     expectCall: 1,
   },
   {
-    title: 'ignoreCallees excludes imported call',
-    file: 'ignore-import.tsx',
+    title: "ignoreCallees excludes imported call",
+    file: "ignore-import.tsx",
     code: `
       import { doThing } from './actions';
       export default function C(){
@@ -325,11 +330,11 @@ const cases: Case[] = [
     expectBody: 0,
     expectIcon: 0,
     expectCall: 0,
-    controls: { ignoreCallees: ['doThing'] },
+    controls: { ignoreCallees: ["doThing"] },
   },
   {
-    title: 'ignoreCallees excludes local callable call',
-    file: 'ignore-local.tsx',
+    title: "ignoreCallees excludes local callable call",
+    file: "ignore-local.tsx",
     code: `
       export default function P(){
         async function doThing(){ 'use server'; return 1; }
@@ -340,15 +345,24 @@ const cases: Case[] = [
     expectBody: 1,
     expectIcon: 1,
     expectCall: 0,
-    controls: { ignoreCallees: ['doThing'] },
+    controls: { ignoreCallees: ["doThing"] },
   },
 ];
 
-describe('highlight/computeHighlights (parameterized)', () => {
-  it.each(cases)('$title', async ({ code, file, expectBody, expectIcon, expectCall, controls }) => {
-    const res = await computeHighlights(code, file, `file:///${file}`, alwaysResolve, controls);
-    expect(res.bodyRanges.length).toBe(expectBody);
-    expect(res.iconRanges.length).toBe(expectIcon);
-    expect(res.callRanges.length).toBe(expectCall);
-  });
+describe("highlight/computeHighlights (parameterized)", () => {
+  it.each(cases)(
+    "$title",
+    async ({ code, file, expectBody, expectIcon, expectCall, controls }) => {
+      const res = await computeHighlights(
+        code,
+        file,
+        `file:///${file}`,
+        alwaysResolve,
+        controls
+      );
+      expect(res.bodyRanges.length).toBe(expectBody);
+      expect(res.iconRanges.length).toBe(expectIcon);
+      expect(res.callRanges.length).toBe(expectCall);
+    }
+  );
 });

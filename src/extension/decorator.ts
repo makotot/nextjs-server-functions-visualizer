@@ -1,4 +1,5 @@
-import * as vscode from 'vscode';
+// biome-ignore lint/performance/noNamespaceImport: cannot import vscode as namespace
+import * as vscode from "vscode";
 
 /**
  * A bundle of decorations applied to the editor.
@@ -16,10 +17,15 @@ export type Decorations = {
  */
 function pickByTheme(light: string, dark: string, hc: string): string {
   const kind = vscode.window.activeColorTheme.kind;
-  if (kind === vscode.ColorThemeKind.Dark) { return dark; }
+  if (kind === vscode.ColorThemeKind.Dark) {
+    return dark;
+  }
   // HighContrastLight is not in all versions; compare by value if present
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (kind === vscode.ColorThemeKind.HighContrast || (vscode.ColorThemeKind as any).HighContrastLight === kind) {
+  if (
+    kind === vscode.ColorThemeKind.HighContrast ||
+    vscode.ColorThemeKind.HighContrastLight === kind
+  ) {
     return hc;
   }
   return light;
@@ -30,16 +36,45 @@ function pickByTheme(light: string, dark: string, hc: string): string {
  * Colors are selected from settings (light/dark/high-contrast) and the current theme.
  */
 export function createDecorations(): Decorations {
-  const cfg = vscode.workspace.getConfiguration('nextjs-server-functions-visualizer');
-  const defLight = cfg.get<string>('highlight.definition.tintLight', 'rgba(138, 99, 255, 0.14)');
-  const defDark = cfg.get<string>('highlight.definition.tintDark', 'rgba(138, 99, 255, 0.18)');
-  const defHC = cfg.get<string>('highlight.definition.tintHighContrast', 'rgba(138, 99, 255, 0.22)');
-  const callLight = cfg.get<string>('highlight.call.tintLight', 'rgba(118, 129, 255, 0.14)');
-  const callDark = cfg.get<string>('highlight.call.tintDark', 'rgba(118, 129, 255, 0.18)');
-  const callHC = cfg.get<string>('highlight.call.tintHighContrast', 'rgba(118, 129, 255, 0.22)');
-  const underlineLight = cfg.get<string>('highlight.call.underlineColorLight', 'rgba(118, 129, 255, 0.85)');
-  const underlineDark = cfg.get<string>('highlight.call.underlineColorDark', 'rgba(118, 129, 255, 0.85)');
-  const underlineHC = cfg.get<string>('highlight.call.underlineColorHighContrast', 'rgba(118, 129, 255, 0.9)');
+  const cfg = vscode.workspace.getConfiguration(
+    "nextjs-server-functions-visualizer"
+  );
+  const defLight = cfg.get<string>(
+    "highlight.definition.tintLight",
+    "rgba(138, 99, 255, 0.14)"
+  );
+  const defDark = cfg.get<string>(
+    "highlight.definition.tintDark",
+    "rgba(138, 99, 255, 0.18)"
+  );
+  const defHC = cfg.get<string>(
+    "highlight.definition.tintHighContrast",
+    "rgba(138, 99, 255, 0.22)"
+  );
+  const callLight = cfg.get<string>(
+    "highlight.call.tintLight",
+    "rgba(118, 129, 255, 0.14)"
+  );
+  const callDark = cfg.get<string>(
+    "highlight.call.tintDark",
+    "rgba(118, 129, 255, 0.18)"
+  );
+  const callHC = cfg.get<string>(
+    "highlight.call.tintHighContrast",
+    "rgba(118, 129, 255, 0.22)"
+  );
+  const underlineLight = cfg.get<string>(
+    "highlight.call.underlineColorLight",
+    "rgba(118, 129, 255, 0.85)"
+  );
+  const underlineDark = cfg.get<string>(
+    "highlight.call.underlineColorDark",
+    "rgba(118, 129, 255, 0.85)"
+  );
+  const underlineHC = cfg.get<string>(
+    "highlight.call.underlineColorHighContrast",
+    "rgba(118, 129, 255, 0.9)"
+  );
 
   const defTint = pickByTheme(defLight, defDark, defHC);
   const callTint = pickByTheme(callLight, callDark, callHC);
@@ -55,15 +90,15 @@ export function createDecorations(): Decorations {
     // Call sites get an underline over the same range as the background
     textDecoration: `underline solid ${underline}`,
     after: {
-      contentText: '🚪',
-      margin: '0 0 0 0.25rem',
+      contentText: "🚪",
+      margin: "0 0 0 0.25rem",
     },
   });
   const icon = vscode.window.createTextEditorDecorationType({
     isWholeLine: false,
     after: {
-      contentText: '🌐',
-      margin: '0 0 0 0.25rem',
+      contentText: "🌐",
+      margin: "0 0 0 0.25rem",
     },
   });
 

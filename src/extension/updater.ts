@@ -1,10 +1,11 @@
-import * as vscode from 'vscode';
-import type { Decorations } from './decorator';
-import type { ResolveFn } from '../analyzer/types';
-import { computeHighlights } from '../analyzer/compute';
-import { isExcludedFileName } from './exclude';
+// biome-ignore lint/performance/noNamespaceImport: cannot import vscode as namespace
+import * as vscode from "vscode";
+import { computeHighlights } from "../analyzer/compute";
+import type { ResolveFn } from "../analyzer/types";
+import type { Decorations } from "./decorator";
+import { isExcludedFileName } from "./exclude";
 
-const SUPPORTED = new Set(['typescript', 'typescriptreact']);
+const SUPPORTED = new Set(["typescript", "typescriptreact"]);
 
 /**
  * Build a function that updates decorations for the active editor.
@@ -12,15 +13,26 @@ const SUPPORTED = new Set(['typescript', 'typescriptreact']);
  * - Call sites: extract candidates → pre-filter (imports/locals) → resolve via LS → if it matches a Server Function, highlight the expression range (with 🚪).
  * - Merge duplicate ranges to avoid double drawing.
  */
-export function buildUpdateEditor(getDecorations: () => Decorations, resolveFn: ResolveFn) {
+export function buildUpdateEditor(
+  getDecorations: () => Decorations,
+  resolveFn: ResolveFn
+) {
   let seq = 0;
   let currentAbort: AbortController | undefined;
-  return async function updateEditor(editor?: vscode.TextEditor): Promise<void> {
+  return async function updateEditor(
+    editor?: vscode.TextEditor
+  ): Promise<void> {
     const runId = ++seq;
     // Abort previous run (if any) and create a fresh controller for this run.
-    try { currentAbort?.abort(); } catch { /* noop */ }
+    try {
+      currentAbort?.abort();
+    } catch {
+      /* noop */
+    }
     currentAbort = new AbortController();
-    if (!editor) {return;}
+    if (!editor) {
+      return;
+    }
     const { document } = editor;
     const { body, call, icon } = getDecorations();
     if (!SUPPORTED.has(document.languageId)) {
@@ -40,31 +52,68 @@ export function buildUpdateEditor(getDecorations: () => Decorations, resolveFn: 
 
     const text = document.getText();
     const visible = editor.visibleRanges[0];
-    const visibleRange = visible ? { start: document.offsetAt(visible.start), end: document.offsetAt(visible.end) } : undefined;
-    const cfg = vscode.workspace.getConfiguration('nextjs-server-functions-visualizer');
+    const visibleRange = visible
+      ? {
+          start: document.offsetAt(visible.start),
+          end: document.offsetAt(visible.end),
+        }
+      : undefined;
+    const cfg = vscode.workspace.getConfiguration(
+      "nextjs-server-functions-visualizer"
+    );
     // Support both the new key and the previous one for compatibility.
-    const ignoreCallees = cfg.get<string[]>('calls.ignoreCallees') ?? [];
+    const ignoreCallees = cfg.get<string[]>("calls.ignoreCallees") ?? [];
     const { bodyRanges, iconRanges, callRanges } = await computeHighlights(
       text,
       document.fileName,
       document.uri.toString(),
       resolveFn,
       visibleRange
-        ? { visibleRange, bounds: { maxConcurrent: 6, perPassBudgetMs: 2000, resolveTimeoutMs: 1500, maxResolutions: 30 }, signal: currentAbort.signal, ignoreCallees }
-        : { signal: currentAbort.signal, ignoreCallees },
+        ? {
+            visibleRange,
+            bounds: {
+              maxConcurrent: 6,
+              perPassBudgetMs: 2000,
+              resolveTimeoutMs: 1500,
+              maxResolutions: 30,
+            },
+            signal: currentAbort.signal,
+            ignoreCallees,
+          }
+        : { signal: currentAbort.signal, ignoreCallees }
     );
-    if (runId !== seq) { return; }
+    if (runId !== seq) {
+      return;
+    }
     editor.setDecorations(
       body,
-      bodyRanges.map(r => new vscode.Range(document.positionAt(r.start), document.positionAt(r.end)))
+      bodyRanges.map(
+        (r) =>
+          new vscode.Range(
+            document.positionAt(r.start),
+            document.positionAt(r.end)
+          )
+      )
     );
     editor.setDecorations(
       icon,
-      iconRanges.map(r => new vscode.Range(document.positionAt(r.start), document.positionAt(r.end)))
+      iconRanges.map(
+        (r) =>
+          new vscode.Range(
+            document.positionAt(r.start),
+            document.positionAt(r.end)
+          )
+      )
     );
     editor.setDecorations(
       call,
-      callRanges.map(r => new vscode.Range(document.positionAt(r.start), document.positionAt(r.end)))
+      callRanges.map(
+        (r) =>
+          new vscode.Range(
+            document.positionAt(r.start),
+            document.positionAt(r.end)
+          )
+      )
     );
   };
 }
